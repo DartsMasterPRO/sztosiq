@@ -1,5 +1,3 @@
-@file:OptIn(UnstableApi::class)
-
 package com.melodia.player.video
 
 import android.app.Activity
@@ -53,6 +51,7 @@ private val RESIZE_MODES = listOf(
     AspectRatioFrameLayout.RESIZE_MODE_FILL to "Rozciągnij",
 )
 
+@OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayerScreen(
     vm: VideoViewModel,
