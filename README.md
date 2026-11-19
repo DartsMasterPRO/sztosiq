@@ -25,18 +25,6 @@ Android 8.0+ (minSdk 26), target Android 15.
 - basy, **soprany**, dźwięk przestrzenny, wzmocnienie głośności
 - **balans L/P**, **ReplayGain** (utwór / album)
 
-**Filmy**
-- zakładka Filmy: miniaturki, czas, jakość (720p/1080p/4K), rozmiar, filtrowanie po folderach, sortowanie
-- zapamiętywanie miejsca w filmie (pasek postępu na miniaturce, wznowienie od tego miejsca)
-- pełnoekranowy odtwarzacz: automatyczny obrót, przycisk obrotu, blokada ekranu
-- gesty: lewa strona w górę/dół = jasność, prawa = głośność, poziomo = przewijanie, podwójne stuknięcie = ±10 s
-- dopasowanie obrazu (dopasuj / wypełnij / rozciągnij), prędkość, następny / poprzedni film z folderu
-- napisy .srt / .vtt (automatycznie z tą samą nazwą obok filmu lub wczytane ręcznie)
-- obraz w obrazie (PiP) – też automatycznie po wyjściu z aplikacji
-- dźwięk filmu w tle (np. koncerty), sterowanie z powiadomienia
-- equalizer, balans i soprany działają też na filmy
-- otwieranie filmów z galerii i menedżerów plików („Otwórz za pomocą” → SztosiQ → „Zawsze”)
-
 **Teksty piosenek**
 - pliki **LRC** zsynchronizowane z muzyką – automatyczne przewijanie, kliknięcie linii przewija utwór
 - wczytywanie pliku LRC lub wklejanie tekstu; plik .lrc obok utworu jest wykrywany automatycznie (gdy Android pozwala)
@@ -58,7 +46,6 @@ Android 8.0+ (minSdk 26), target Android 15.
 - łączny i miesięczny czas słuchania, top wykonawcy i utwory, podsumowania miesięczne, historia
 
 ### Uwagi
-- **Domyślny odtwarzacz filmów:** otwórz film w galerii lub menedżerze plików → wybierz SztosiQ → „Zawsze”. Jeśli wcześniej wybrano inny odtwarzacz: Ustawienia → Aplikacje → (tamten odtwarzacz) → Otwieraj domyślnie → Wyczyść ustawienia domyślne. Google Zdjęcia i niektóre galerie odtwarzają filmy wbudowanym odtwarzaczem i nie pytają o inną aplikację.
 - **Android Auto** z aplikacją spoza Sklepu Play: w Android Auto → Ustawienia → stuknij 10× „Wersja” → menu (⋮) → Ustawienia programisty → włącz „Nieznane źródła”.
 - **Wizualizacja** wymaga zgody „Mikrofon” – tak Android nazywa dostęp do analizy dźwięku, nic nie jest nagrywane.
 - **Chromecast** nie jest obsługiwany (wymaga Google Cast SDK i serwera plików w telefonie).
@@ -93,8 +80,7 @@ app/src/main/java/com/melodia/player/
 │   ├── MusicRepository.kt   – skanowanie MediaStore
 │   ├── LibraryStore.kt      – playlisty, ulubione, statystyki (JSON)
 │   └── Settings.kt          – ustawienia (SharedPreferences)
-├── video/                 – odtwarzacz filmów (VideoActivity, gesty, PiP)
-├── widget/                – widżet na ekran główny
+├── widget/MusicWidget.kt   – widżet na ekran główny
 ├── playback/
 │   ├── PlaybackService.kt   – MediaLibraryService + ExoPlayer, Android Auto
 │   ├── SoundProcessor.kt    – balans, soprany, ReplayGain

@@ -4,11 +4,13 @@ import android.app.PendingIntent
 import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.media.audiofx.AudioEffect
 import android.net.Uri
 import android.os.SystemClock
 import android.provider.MediaStore
 import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -16,8 +18,14 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.RenderersFactory
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.MediaCodecAudioRenderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
@@ -80,9 +88,31 @@ class PlaybackService : MediaLibraryService() {
         super.onCreate()
         val settings = app.settings
 
-        audioSessionId = app.audioSessionId
-        player = PlayerFactory.create(this, processor, video = false, audioSessionId = audioSessionId)
-        AudioEffects.acquire(audioSessionId, settings)
+        // Własny tor audio: dekoder systemowy + nasz procesor (balans / soprany / ReplayGain).
+        val renderers = RenderersFactory { handler, _, audioListener, _, _ ->
+            val sink = DefaultAudioSink.Builder(this)
+                .setAudioProcessors(arrayOf<AudioProcessor>(processor))
+                .build()
+            arrayOf<Renderer>(
+                MediaCodecAudioRenderer(this, MediaCodecSelector.DEFAULT, handler, audioListener, sink)
+            )
+        }
+
+        player = ExoPlayer.Builder(this, renderers)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                /* handleAudioFocus = */ true
+            )
+            .setHandleAudioBecomingNoisy(true)
+            .setWakeMode(C.WAKE_MODE_LOCAL)
+            .build()
+
+        audioSessionId = (getSystemService(Context.AUDIO_SERVICE) as AudioManager).generateAudioSessionId()
+        player.setAudioSessionId(audioSessionId)
+        AudioEffects.attach(audioSessionId, settings)
         broadcastEffectSession(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION)
 
         player.shuffleModeEnabled = settings.shuffle
@@ -127,7 +157,7 @@ class PlaybackService : MediaLibraryService() {
         SleepTimer.cancel()
         SleepTimer.player = null
         VisualizerController.stop()
-        AudioEffects.releaseUser()
+        AudioEffects.release()
         broadcastEffectSession(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION)
         MusicWidget.update(this, null, null, false, null)
         session?.run {
