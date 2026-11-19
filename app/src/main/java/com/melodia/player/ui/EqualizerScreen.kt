@@ -1,13 +1,18 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.melodia.player.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,22 +20,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.melodia.player.MusicViewModel
+import com.melodia.player.playback.EqPresets
+import com.melodia.player.ui.theme.LocalUiSettings
 import kotlin.math.roundToInt
 
 @Composable
-fun EqualizerScreen(vm: MusicViewModel) {
+fun EqualizerScreen(vm: MusicViewModel, nav: NavController) {
     val st by vm.eqState.collectAsStateWithLifecycle()
     val player by vm.player.collectAsStateWithLifecycle()
+    val ui = LocalUiSettings.current
+    val ctx = LocalContext.current
+    var saving by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
         SimpleTopBar("Equalizer", actions = {
             if (st.available) {
+                IconButton(onClick = { saving = true }) { Icon(Icons.Default.Save, "Zapisz jako własny preset") }
                 IconButton(onClick = { vm.resetEq() }) { Icon(Icons.Default.RestartAlt, "Resetuj") }
             }
+            IconButton(onClick = { nav.navigate("settings") }) { Icon(Icons.Default.Settings, "Ustawienia dźwięku") }
         })
 
         Column(
@@ -40,13 +54,12 @@ fun EqualizerScreen(vm: MusicViewModel) {
             if (!st.available) {
                 EmptyState("Equalizer jest niedostępny.\nUruchom dowolny utwór – jeśli dalej nie działa, telefon nie udostępnia efektów audio.")
             } else {
-                // Włącznik
                 Card {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Efekty dźwięku", style = MaterialTheme.typography.titleMedium)
                             Text(
-                                if (st.enabled) "Włączone" else "Wyłączone",
+                                if (st.enabled) "Włączone – ${st.bands.size} pasm" else "Wyłączone",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -55,25 +68,47 @@ fun EqualizerScreen(vm: MusicViewModel) {
                     }
                 }
 
-                // Presety
-                if (st.presets.isNotEmpty()) {
+                // ---- Presety ----
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Presety", style = MaterialTheme.typography.titleSmall)
                     Row(
                         Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FilterChip(selected = st.currentPreset == -1, onClick = {}, label = { Text("Własny") }, enabled = st.enabled)
-                        st.presets.forEachIndexed { i, name ->
+                        FilterChip(
+                            selected = st.presetName.isEmpty(),
+                            onClick = {},
+                            label = { Text("Własne ustawienia") },
+                            enabled = st.enabled
+                        )
+                        st.customPresets.forEach { c ->
                             FilterChip(
-                                selected = st.currentPreset == i,
-                                onClick = { vm.useEqPreset(i) },
+                                selected = st.presetName == c.name,
+                                onClick = { vm.applyCustomPreset(c) },
+                                label = { Text(c.name) },
+                                leadingIcon = { Icon(Icons.Default.Star, null, Modifier.size(16.dp)) },
+                                enabled = st.enabled
+                            )
+                        }
+                        EqPresets.builtIn.forEach { (name, _) ->
+                            FilterChip(
+                                selected = st.presetName == name,
+                                onClick = { vm.applyBuiltInPreset(name) },
                                 label = { Text(name) },
                                 enabled = st.enabled
                             )
                         }
                     }
+                    st.customPresets.firstOrNull { it.name == st.presetName }?.let { c ->
+                        TextButton(onClick = { vm.deleteCustomPreset(c.name) }) {
+                            Icon(Icons.Default.Delete, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Usuń preset „${c.name}”")
+                        }
+                    }
                 }
 
-                // Pasma
+                // ---- Pasma ----
                 Card {
                     Column(Modifier.padding(vertical = 12.dp)) {
                         Row(Modifier.fillMaxWidth().height(260.dp).padding(horizontal = 4.dp)) {
@@ -82,10 +117,7 @@ fun EqualizerScreen(vm: MusicViewModel) {
                                     Modifier.weight(1f).fillMaxHeight(),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
-                                        "%+.0f".format(band.level / 100f),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
+                                    Text("%+.0f".format(band.level / 100f), style = MaterialTheme.typography.labelSmall)
                                     VerticalSlider(
                                         value = band.level.toFloat(),
                                         onValueChange = { vm.setEqBand(band.index, it.roundToInt()) },
@@ -106,28 +138,40 @@ fun EqualizerScreen(vm: MusicViewModel) {
                     }
                 }
 
-                // Efekty dodatkowe
+                // ---- Tony / efekty ----
                 Card {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Barwa i efekty", style = MaterialTheme.typography.titleSmall)
                         if (st.bassSupported) {
-                            EffectSlider("Wzmocnienie basu", st.bassBoost, 1000, st.enabled) { vm.setBassBoost(it) }
+                            EffectSlider("Basy (bass boost)", st.bassBoost, 0, 1000, st.enabled) { vm.setBassBoost(it) }
                         }
+                        // Soprany – własny filtr aplikacji, działa na każdym telefonie
+                        var treble by remember(ui.trebleDb) { mutableFloatStateOf(ui.trebleDb) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Soprany (wysokie tony)", modifier = Modifier.weight(1f))
+                            Text("%+.1f dB".format(treble), style = MaterialTheme.typography.labelMedium)
+                        }
+                        Slider(
+                            value = treble,
+                            onValueChange = { treble = (it * 2).roundToInt() / 2f },
+                            onValueChangeFinished = { vm.setTreble(treble) },
+                            valueRange = -12f..12f,
+                            enabled = st.enabled
+                        )
                         if (st.virtSupported) {
-                            EffectSlider("Dźwięk przestrzenny", st.virtualizer, 1000, st.enabled) { vm.setVirtualizer(it) }
+                            EffectSlider("Dźwięk przestrzenny", st.virtualizer, 0, 1000, st.enabled) { vm.setVirtualizer(it) }
                         }
                         if (st.loudSupported) {
-                            EffectSlider("Wzmocnienie głośności", st.loudness, 1500, st.enabled, suffix = { "+%.1f dB".format(it / 100f) }) {
-                                vm.setLoudness(it)
-                            }
-                        }
-                        if (!st.bassSupported && !st.virtSupported && !st.loudSupported) {
-                            Text("Telefon nie obsługuje dodatkowych efektów.")
+                            EffectSlider(
+                                "Wzmocnienie głośności", st.loudness, 0, 1500, st.enabled,
+                                suffix = { "+%.1f dB".format(it / 100f) }
+                            ) { vm.setLoudness(it) }
                         }
                     }
                 }
             }
 
-            // Prędkość – działa niezależnie od equalizera
+            // ---- Prędkość (działa niezależnie od equalizera) ----
             Card {
                 Column(Modifier.padding(16.dp)) {
                     var speed by remember(player.speed) { mutableFloatStateOf(player.speed) }
@@ -145,8 +189,20 @@ fun EqualizerScreen(vm: MusicViewModel) {
                     TextButton(onClick = { vm.setSpeed(1f) }, enabled = speed != 1f) { Text("Przywróć 1x") }
                 }
             }
+            Text(
+                "Balans L/P, ReplayGain i płynne przejścia znajdziesz w Ustawieniach (ikona zębatki u góry).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(16.dp))
         }
+    }
+
+    if (saving) {
+        TextInputDialog("Zapisz preset", "", "Zapisz", onConfirm = {
+            vm.saveCustomPreset(it)
+            toast(ctx, "Zapisano preset „$it”")
+        }) { saving = false }
     }
 }
 
@@ -154,9 +210,10 @@ fun EqualizerScreen(vm: MusicViewModel) {
 private fun EffectSlider(
     label: String,
     value: Int,
+    min: Int,
     max: Int,
     enabled: Boolean,
-    suffix: (Int) -> String = { "${(it * 100f / max).roundToInt()}%" },
+    suffix: (Int) -> String = { "${((it - min) * 100f / (max - min)).roundToInt()}%" },
     onChange: (Int) -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -166,7 +223,7 @@ private fun EffectSlider(
     Slider(
         value = value.toFloat(),
         onValueChange = { onChange(it.roundToInt()) },
-        valueRange = 0f..max.toFloat(),
+        valueRange = min.toFloat()..max.toFloat(),
         enabled = enabled
     )
 }

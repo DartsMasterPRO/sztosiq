@@ -8,11 +8,17 @@ import kotlinx.coroutines.flow.update
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.Executors
 
+/** Wpis historii: utwór, kiedy skończono słuchać, ile ms słuchano. */
+data class HistoryEntry(val songId: Long, val time: Long, val ms: Long)
+
 /**
- * Playlisty, ulubione, licznik odtworzeń i historia – zapisywane w pliku JSON w pamięci aplikacji.
- * Wszystkie metody wywoływane są z głównego wątku.
+ * Playlisty, ulubione, licznik odtworzeń, historia i czas słuchania –
+ * zapisywane w pliku JSON w pamięci aplikacji. Wywoływane z głównego wątku.
  */
 class LibraryStore(context: Context) {
     private val file = File(context.filesDir, "library.json")
@@ -31,6 +37,14 @@ class LibraryStore(context: Context) {
     /** Ostatnio odtwarzane – najnowsze na początku. */
     private val _recent = MutableStateFlow<List<Long>>(emptyList())
     val recent: StateFlow<List<Long>> = _recent.asStateFlow()
+
+    /** Historia słuchania – najnowsze na początku. */
+    private val _history = MutableStateFlow<List<HistoryEntry>>(emptyList())
+    val history: StateFlow<List<HistoryEntry>> = _history.asStateFlow()
+
+    /** Czas słuchania w miesiącach: "2026-11" -> ms. */
+    private val _monthly = MutableStateFlow<Map<String, Long>>(emptyMap())
+    val monthly: StateFlow<Map<String, Long>> = _monthly.asStateFlow()
 
     init {
         load()
@@ -83,6 +97,30 @@ class LibraryStore(context: Context) {
         save()
     }
 
+    fun addListening(songId: Long, ms: Long) {
+        if (ms < 3000) return
+        val now = System.currentTimeMillis()
+        _history.update { list ->
+            val first = list.firstOrNull()
+            if (first != null && first.songId == songId && now - first.time < 30 * 60_000L) {
+                listOf(first.copy(time = now, ms = first.ms + ms)) + list.drop(1)
+            } else {
+                (listOf(HistoryEntry(songId, now, ms)) + list).take(5000)
+            }
+        }
+        val key = monthKey(now)
+        _monthly.update { it + (key to (it[key] ?: 0L) + ms) }
+        save()
+    }
+
+    fun clearStats() {
+        _playCounts.value = emptyMap()
+        _recent.value = emptyList()
+        _history.value = emptyList()
+        _monthly.value = emptyMap()
+        save()
+    }
+
     // ---------- Zapis / odczyt ----------
 
     private fun load() {
@@ -96,11 +134,20 @@ class LibraryStore(context: Context) {
             }
             _favorites.value = o.optJSONArray("favorites").toLongList()
             _recent.value = o.optJSONArray("recent").toLongList()
-            val pc = o.optJSONObject("playCounts")
-            if (pc != null) {
+            o.optJSONObject("playCounts")?.let { pc ->
                 val map = HashMap<Long, Int>()
                 pc.keys().forEach { key -> key.toLongOrNull()?.let { map[it] = pc.optInt(key) } }
                 _playCounts.value = map
+            }
+            o.optJSONArray("history")?.let { h ->
+                _history.value = (0 until h.length()).mapNotNull { i ->
+                    h.optJSONArray(i)?.let { e -> HistoryEntry(e.getLong(0), e.getLong(1), e.getLong(2)) }
+                }
+            }
+            o.optJSONObject("monthly")?.let { m ->
+                val map = HashMap<String, Long>()
+                m.keys().forEach { key -> map[key] = m.optLong(key) }
+                _monthly.value = map
             }
         }
     }
@@ -124,6 +171,12 @@ class LibraryStore(context: Context) {
         o.put("playCounts", JSONObject().apply {
             _playCounts.value.forEach { (k, v) -> put(k.toString(), v) }
         })
+        o.put("history", JSONArray().apply {
+            _history.value.forEach { e -> put(JSONArray().put(e.songId).put(e.time).put(e.ms)) }
+        })
+        o.put("monthly", JSONObject().apply {
+            _monthly.value.forEach { (k, v) -> put(k, v) }
+        })
         val text = o.toString()
         io.execute {
             runCatching {
@@ -135,5 +188,9 @@ class LibraryStore(context: Context) {
                 }
             }
         }
+    }
+
+    companion object {
+        fun monthKey(time: Long): String = SimpleDateFormat("yyyy-MM", Locale.US).format(Date(time))
     }
 }

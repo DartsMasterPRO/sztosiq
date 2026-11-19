@@ -23,6 +23,7 @@ data class Song(
     val dateAdded: Long,
     val folder: String,
     val path: String,
+    val genre: String = "",
 ) {
     val uri: Uri get() = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
     val artUri: Uri get() = ContentUris.withAppendedId(ALBUM_ART_URI, albumId)
@@ -47,6 +48,8 @@ data class Artist(val name: String, val songs: List<Song>) {
 data class Folder(val path: String, val songs: List<Song>) {
     val name: String get() = path.trimEnd('/').substringAfterLast('/').ifBlank { path }
 }
+
+data class Genre(val name: String, val songs: List<Song>)
 
 data class Playlist(val id: Long, val name: String, val songIds: List<Long>)
 
@@ -115,6 +118,13 @@ fun groupFolders(songs: List<Song>): List<Folder> {
     val c = plCollator()
     return songs.groupBy { it.folder }.map { (path, list) ->
         Folder(path, list.sortedWith(compareBy(c) { it.title }))
+    }.sortedWith(compareBy(c) { it.name })
+}
+
+fun groupGenres(songs: List<Song>): List<Genre> {
+    val c = plCollator()
+    return songs.filter { it.genre.isNotBlank() }.groupBy { it.genre.trim() }.map { (name, list) ->
+        Genre(name, list.sortedWith(compareBy<Song, String>(c) { it.artist }.thenBy(c) { it.title }))
     }.sortedWith(compareBy(c) { it.name })
 }
 

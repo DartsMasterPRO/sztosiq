@@ -160,7 +160,7 @@ private fun MainScaffold(vm: MusicViewModel) {
                 composable("library") { LibraryScreen(vm, nav) }
                 composable("playlists") { PlaylistsScreen(vm, nav) }
                 composable("search") { SearchScreen(vm, nav) }
-                composable("eq") { EqualizerScreen(vm) }
+                composable("eq") { EqualizerScreen(vm, nav) }
                 composable(
                     "album/{id}",
                     arguments = listOf(navArgument("id") { type = NavType.LongType })
@@ -175,6 +175,11 @@ private fun MainScaffold(vm: MusicViewModel) {
                     "playlist/{id}",
                     arguments = listOf(navArgument("id") { type = NavType.LongType })
                 ) { e -> PlaylistScreen(vm, nav, e.arguments?.getLong("id") ?: 0L) }
+                composable("genre/{name}") { e ->
+                    GenreScreen(vm, nav, e.arguments?.getString("name").orEmpty())
+                }
+                composable("settings") { SettingsScreen(vm, nav) }
+                composable("stats") { StatsScreen(vm, nav) }
                 composable("smart/{kind}") { e ->
                     SmartPlaylistScreen(vm, nav, e.arguments?.getString("kind").orEmpty())
                 }

@@ -6,39 +6,49 @@ Android 8.0+ (minSdk 26), target Android 15.
 ## Funkcje
 
 **Biblioteka**
-- automatyczne skanowanie muzyki w telefonie (MediaStore), odświeża się sama po dodaniu plików
-- zakładki: Utwory, Albumy (siatka z okładkami), Wykonawcy, Foldery
-- sortowanie utworów: tytuł / wykonawca / album / ostatnio dodane / długość (polska kolejność alfabetyczna)
-- wyszukiwarka utworów, albumów i wykonawców, działa bez polskich znaków („zolw” znajdzie „Żółw”)
-- „Otwórz za pomocą…” – odtwarzanie pojedynczego pliku z menedżera plików
+- utwory, albumy, wykonawcy, **gatunki**, foldery – skanowane automatycznie
+- sortowanie, wyszukiwarka bez polskich znaków, „Otwórz za pomocą…”
+- listy automatyczne: Ulubione, Ostatnio dodane, Najczęściej / Ostatnio odtwarzane, Jeszcze nie słuchane
 
 **Odtwarzanie**
-- odtwarzanie w tle, powiadomienie z kontrolkami, sterowanie z ekranu blokady, słuchawek i Bluetooth
-- pauza po wyjęciu słuchawek, obsługa fokusu audio (np. połączenia)
-- losowo, powtarzanie (wszystko / jeden), poprzedni / następny, przewijanie
-- przesuwanie okładki w lewo/prawo zmienia utwór
-- kolejka: podgląd w kolejności odtwarzania, skok do utworu, usuwanie, czyszczenie
-- „Odtwórz jako następny” i „Dodaj do kolejki”
-- prędkość odtwarzania 0,5×–2×
-- wyłącznik czasowy (5–90 min, z płynnym wyciszeniem) lub „po zakończeniu utworu”
-- zapamiętanie kolejki i pozycji po zamknięciu aplikacji + wznawianie z systemowego panelu multimediów
+- w tle, powiadomienie, ekran blokady, Bluetooth, pauza po wyjęciu słuchawek, audio focus
+- **Android Auto** (przeglądanie biblioteki w aucie)
+- **widżet** na ekran główny
+- losowo / powtarzanie, kolejka (zmiana kolejności, usuwanie), zapis kolejki
+- **regulacja głośności** na ekranie odtwarzania
+- prędkość 0,5–2×, wyłącznik czasowy, **płynne przejścia między utworami**
+- **informacja o formacie** (FLAC / MP3 / AAC / OGG / Opus / WAV / ALAC, kHz, bit, kbps) + znaczek **Hi-Res**
 
-**Equalizer**
-- wielopasmowy equalizer (liczba pasm zależy od telefonu, zwykle 5) z pionowymi suwakami
-- presety systemowe (Rock, Pop, Jazz, Classical…)
-- wzmocnienie basu, dźwięk przestrzenny, wzmocnienie głośności
-- ustawienia zapisują się między uruchomieniami
-- zewnętrzne aplikacje equalizera (np. Wavelet) też zadziałają – sesja audio jest rozgłaszana
+**Dźwięk**
+- equalizer 5–10 pasm (zależnie od telefonu), 14 presetów (Rock, Pop, Jazz, Klasyczna, Elektroniczna, Hip-Hop…)
+- **własne presety** – zapisywanie i usuwanie
+- basy, **soprany**, dźwięk przestrzenny, wzmocnienie głośności
+- **balans L/P**, **ReplayGain** (utwór / album)
+
+**Teksty piosenek**
+- pliki **LRC** zsynchronizowane z muzyką – automatyczne przewijanie, kliknięcie linii przewija utwór
+- wczytywanie pliku LRC lub wklejanie tekstu; plik .lrc obok utworu jest wykrywany automatycznie (gdy Android pozwala)
+
+**Wizualizacje**
+- spectrum analyzer (słupki) lub fala dźwiękowa
+- okładka i animowane tło pulsują z basem
+
+**Personalizacja**
+- tryb jasny / ciemny / systemowy, czarne tło AMOLED
+- kolory: z tapety (Android 12+), **z okładki albumu** lub 10 gotowych motywów
+- ekran odtwarzania: klasyczny / **winyl** (obracająca się płyta) / pełny ekran
+- rozmiar okładki, animowane tło, styl list (z okładkami / kompaktowe)
 
 **Playlisty**
-- tworzenie, zmiana nazwy, usuwanie
-- dodawanie z menu utworu, usuwanie, przesuwanie w górę/dół
-- listy automatyczne: Ulubione (serduszko), Ostatnio dodane, Najczęściej odtwarzane, Ostatnio odtwarzane
+- tworzenie, edycja, zmiana kolejności, **import / eksport M3U**
 
-**Wygląd**
-- Material You – kolory z tapety na Androidzie 12+
-- tryb jasny i ciemny wg ustawień systemu
-- ekran „Teraz odtwarzane” z rozmytą okładką w tle
+**Statystyki**
+- łączny i miesięczny czas słuchania, top wykonawcy i utwory, podsumowania miesięczne, historia
+
+### Uwagi
+- **Android Auto** z aplikacją spoza Sklepu Play: w Android Auto → Ustawienia → stuknij 10× „Wersja” → menu (⋮) → Ustawienia programisty → włącz „Nieznane źródła”.
+- **Wizualizacja** wymaga zgody „Mikrofon” – tak Android nazywa dostęp do analizy dźwięku, nic nie jest nagrywane.
+- **Chromecast** nie jest obsługiwany (wymaga Google Cast SDK i serwera plików w telefonie).
 
 ## Jak zbudować
 
@@ -70,8 +80,11 @@ app/src/main/java/com/melodia/player/
 │   ├── MusicRepository.kt   – skanowanie MediaStore
 │   ├── LibraryStore.kt      – playlisty, ulubione, statystyki (JSON)
 │   └── Settings.kt          – ustawienia (SharedPreferences)
+├── widget/MusicWidget.kt   – widżet na ekran główny
 ├── playback/
-│   ├── PlaybackService.kt   – MediaSessionService + ExoPlayer
+│   ├── PlaybackService.kt   – MediaLibraryService + ExoPlayer, Android Auto
+│   ├── SoundProcessor.kt    – balans, soprany, ReplayGain
+│   ├── VisualizerController.kt – FFT do wizualizacji
 │   ├── AudioEffects.kt      – Equalizer, BassBoost, Virtualizer, LoudnessEnhancer
 │   └── SleepTimer.kt        – wyłącznik czasowy
 └── ui/

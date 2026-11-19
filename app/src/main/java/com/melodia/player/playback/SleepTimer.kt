@@ -15,6 +15,10 @@ object SleepTimer {
     private var job: Job? = null
     var player: ExoPlayer? = null
 
+    /** true podczas wyciszania – wtedy serwis nie rusza głośności (crossfade). */
+    @Volatile var fading = false
+        private set
+
     private val _endsAt = MutableStateFlow<Long?>(null)
     val endsAt: StateFlow<Long?> = _endsAt.asStateFlow()
 
@@ -35,6 +39,7 @@ object SleepTimer {
     private suspend fun fadeOutAndPause() {
         val p = player ?: return
         val startVolume = p.volume
+        fading = true
         try {
             val steps = 20
             for (i in 1..steps) {
@@ -44,6 +49,7 @@ object SleepTimer {
             p.pause()
         } finally {
             p.volume = startVolume
+            fading = false
         }
     }
 

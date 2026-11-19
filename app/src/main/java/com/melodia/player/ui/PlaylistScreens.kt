@@ -2,6 +2,8 @@
 
 package com.melodia.player.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +31,7 @@ private val SMART_LISTS = listOf(
     Smart(MusicViewModel.SMART_ADDED, "Ostatnio dodane", Icons.Default.NewReleases),
     Smart(MusicViewModel.SMART_MOST, "Najczęściej odtwarzane", Icons.Default.TrendingUp),
     Smart(MusicViewModel.SMART_RECENT, "Ostatnio odtwarzane", Icons.Default.History),
+    Smart(MusicViewModel.SMART_UNPLAYED, "Jeszcze nie słuchane", Icons.Default.MusicOff),
 )
 
 @Composable
@@ -36,9 +40,18 @@ fun PlaylistsScreen(vm: MusicViewModel, nav: NavController) {
     var creating by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Playlist?>(null) }
     var deleting by remember { mutableStateOf<Playlist?>(null) }
+    val ctx = LocalContext.current
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) vm.importPlaylist(uri) { name, count ->
+            toast(ctx, if (count > 0) "Zaimportowano „$name” ($count utw.)" else "Nie znaleziono pasujących utworów")
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         SimpleTopBar("Playlisty", actions = {
+            IconButton(onClick = { importLauncher.launch(arrayOf("*/*")) }) {
+                Icon(Icons.Default.FileDownload, "Importuj playlistę (M3U)")
+            }
             IconButton(onClick = { creating = true }) { Icon(Icons.Default.Add, "Nowa playlista") }
         })
         LazyColumn(Modifier.fillMaxSize()) {
@@ -113,10 +126,21 @@ fun PlaylistScreen(vm: MusicViewModel, nav: NavController, playlistId: Long) {
     var renaming by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    val ctx = LocalContext.current
 
     // Pary (pozycja w playliście, utwór) – pomijamy pliki usunięte z telefonu.
     val entries = remember(playlist, songMap) {
         playlist?.songIds?.mapIndexedNotNull { i, id -> songMap[id]?.let { i to it } } ?: emptyList()
+    }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("audio/x-mpegurl")
+    ) { uri ->
+        if (uri != null && playlist != null) {
+            vm.exportPlaylist(entries.map { it.second }, playlist.name, uri) { ok ->
+                toast(ctx, if (ok) "Zapisano playlistę" else "Nie udało się zapisać pliku")
+            }
+        }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -129,6 +153,10 @@ fun PlaylistScreen(vm: MusicViewModel, nav: NavController, playlistId: Long) {
                             text = { Text("Zmień nazwę") },
                             leadingIcon = { Icon(Icons.Default.Edit, null) },
                             onClick = { menuOpen = false; renaming = true })
+                        DropdownMenuItem(
+                            text = { Text("Eksportuj (M3U)") },
+                            leadingIcon = { Icon(Icons.Default.FileUpload, null) },
+                            onClick = { menuOpen = false; exportLauncher.launch("${playlist.name}.m3u") })
                         DropdownMenuItem(
                             text = { Text("Usuń playlistę") },
                             leadingIcon = { Icon(Icons.Default.Delete, null) },

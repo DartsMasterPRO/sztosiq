@@ -35,13 +35,15 @@ import com.melodia.player.data.songsLabel
 @Composable
 fun LibraryScreen(vm: MusicViewModel, nav: NavController) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = listOf("Utwory", "Albumy", "Wykonawcy", "Foldery")
+    val tabs = listOf("Utwory", "Albumy", "Wykonawcy", "Gatunki", "Foldery")
 
     Column(Modifier.fillMaxSize()) {
         SimpleTopBar("Biblioteka", actions = {
             IconButton(onClick = { vm.refreshLibrary() }) { Icon(Icons.Default.Refresh, "Odśwież bibliotekę") }
+            IconButton(onClick = { nav.navigate("stats") }) { Icon(Icons.Default.BarChart, "Statystyki") }
+            IconButton(onClick = { nav.navigate("settings") }) { Icon(Icons.Default.Settings, "Ustawienia") }
         })
-        TabRow(selectedTabIndex = tab) {
+        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
             tabs.forEachIndexed { i, t ->
                 Tab(selected = tab == i, onClick = { tab = i }, text = { Text(t, maxLines = 1) })
             }
@@ -50,8 +52,41 @@ fun LibraryScreen(vm: MusicViewModel, nav: NavController) {
             0 -> SongsTab(vm, nav)
             1 -> AlbumsTab(vm, nav)
             2 -> ArtistsTab(vm, nav)
+            3 -> GenresTab(vm, nav)
             else -> FoldersTab(vm, nav)
         }
+    }
+}
+
+@Composable
+private fun GenresTab(vm: MusicViewModel, nav: NavController) {
+    val genres by vm.genres.collectAsStateWithLifecycle()
+    if (genres.isEmpty()) {
+        EmptyState("Brak informacji o gatunkach.\nGatunek jest odczytywany z tagów plików muzycznych.")
+        return
+    }
+    LazyColumn(Modifier.fillMaxSize()) {
+        items(genres, key = { it.name }) { g ->
+            ListItem(
+                modifier = Modifier.clickable { nav.navigate("genre/${Uri.encode(g.name)}") },
+                leadingContent = { CircleIcon(Icons.Default.Category) },
+                headlineContent = { Text(g.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                supportingContent = {
+                    Text("${songsLabel(g.songs.size)} • ${g.songs.map { it.artist }.distinct().size} wyk.")
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun GenreScreen(vm: MusicViewModel, nav: NavController, name: String) {
+    val genres by vm.genres.collectAsStateWithLifecycle()
+    val genre = genres.firstOrNull { it.name == name }
+    Column(Modifier.fillMaxSize()) {
+        SimpleTopBar(name, onBack = { nav.popBackStack() })
+        if (genre == null) return@Column
+        SongList(genre.songs, vm, nav)
     }
 }
 

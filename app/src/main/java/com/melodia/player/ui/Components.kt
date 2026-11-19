@@ -36,6 +36,7 @@ import coil.compose.AsyncImage
 import com.melodia.player.MusicViewModel
 import com.melodia.player.data.Song
 import com.melodia.player.data.songsLabel
+import com.melodia.player.ui.theme.LocalUiSettings
 
 fun formatDuration(ms: Long): String {
     val total = (ms / 1000).coerceAtLeast(0)
@@ -109,6 +110,10 @@ fun SongRow(
     onMore: () -> Unit,
     leadingNumber: Int? = null,
 ) {
+    if (LocalUiSettings.current.listStyle == 1) {
+        CompactSongRow(song, isCurrent, onClick, onMore, leadingNumber)
+        return
+    }
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
         leadingContent = {
@@ -144,6 +149,57 @@ fun SongRow(
             IconButton(onClick = onMore) { Icon(Icons.Default.MoreVert, "Więcej") }
         },
     )
+}
+
+@Composable
+private fun CompactSongRow(
+    song: Song,
+    isCurrent: Boolean,
+    onClick: () -> Unit,
+    onMore: () -> Unit,
+    leadingNumber: Int?,
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (leadingNumber != null) {
+            Text(
+                if (leadingNumber > 0) "$leadingNumber" else "–",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.width(28.dp)
+            )
+        }
+        if (isCurrent) {
+            Icon(Icons.Default.GraphicEq, null, tint = accent, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                song.title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isCurrent) accent else Color.Unspecified,
+                fontWeight = if (isCurrent) FontWeight.SemiBold else null,
+            )
+            Text(
+                song.artist,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            formatDuration(song.duration),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        IconButton(onClick = onMore) { Icon(Icons.Default.MoreVert, "Więcej") }
+    }
 }
 
 @Composable
