@@ -16,13 +16,24 @@ android {
         versionName = "1.0"
     }
 
+    // Stały klucz podpisu – każda nowa wersja instaluje się na poprzednią (bez utraty danych).
+    signingConfigs {
+        create("melodia") {
+            storeFile = file("melodia.keystore")
+            storePassword = "melodia123"
+            keyAlias = "melodia"
+            keyPassword = "melodia123"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("melodia")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Podpis kluczem debug, żeby wersję release dało się od razu zainstalować.
-            // Przed publikacją w Google Play podmień na własny klucz.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("melodia")
         }
     }
 

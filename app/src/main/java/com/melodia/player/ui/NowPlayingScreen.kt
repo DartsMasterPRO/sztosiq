@@ -10,6 +10,11 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -94,6 +99,14 @@ fun NowPlayingScreen(vm: MusicViewModel, nav: NavController, onClose: () -> Unit
     var editLyrics by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var dragPosition by remember { mutableStateOf<Float?>(null) }
+    var showVolume by remember { mutableStateOf(false) }
+    var volumeTouch by remember { mutableIntStateOf(0) }
+    LaunchedEffect(showVolume, volumeTouch) {
+        if (showVolume) {
+            delay(3000)
+            showVolume = false
+        }
+    }
 
     // ---- wizualizacja ----
     var micGranted by remember { mutableStateOf(hasAudioPermission(ctx)) }
@@ -405,8 +418,20 @@ fun NowPlayingScreen(vm: MusicViewModel, nav: NavController, onClose: () -> Unit
                     }
                 }
 
-                // ---- Głośność ----
-                VolumeRow()
+                // ---- Głośność (wysuwana po kliknięciu ikony) ----
+                AnimatedVisibility(
+                    visible = showVolume,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(28.dp),
+                        color = scheme.surfaceContainerHigh.copy(alpha = 0.92f),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                    ) {
+                        VolumeRow(onInteract = { volumeTouch++ })
+                    }
+                }
 
                 // ---- Dolny pasek ----
                 Row(
@@ -422,6 +447,12 @@ fun NowPlayingScreen(vm: MusicViewModel, nav: NavController, onClose: () -> Unit
                             leadingIcon = { Icon(Icons.Default.Speed, null, Modifier.size(18.dp)) }
                         )
                         Spacer(Modifier.width(4.dp))
+                    }
+                    IconButton(onClick = { showVolume = !showVolume }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.VolumeUp, "Głośność",
+                            tint = if (showVolume) scheme.primary else LocalContentColor.current
+                        )
                     }
                     IconButton(onClick = { showLyrics = !showLyrics }) {
                         Icon(
@@ -479,7 +510,7 @@ private fun VinylArt(model: Any?, playing: Boolean, modifier: Modifier = Modifie
 
 /** Regulacja głośności multimediów (systemowej). */
 @Composable
-private fun VolumeRow() {
+private fun VolumeRow(onInteract: () -> Unit) {
     val ctx = LocalContext.current
     val am = remember { ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val max = remember { am.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1) }
@@ -491,12 +522,13 @@ private fun VolumeRow() {
             delay(700)
         }
     }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.AutoMirrored.Filled.VolumeDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Slider(
             value = volume,
             onValueChange = {
                 touching = true
+                onInteract()
                 volume = it
                 runCatching { am.setStreamVolume(AudioManager.STREAM_MUSIC, it.roundToInt(), 0) }
             },
