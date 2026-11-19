@@ -128,6 +128,40 @@ class Settings(context: Context) {
         get() = p.getInt("repeatMode", 0)
         set(v) = p.edit { putInt("repeatMode", v) }
 
+    // ---------- Filmy ----------
+
+    /** Dźwięk filmu gra dalej po wyjściu z odtwarzacza. */
+    var videoBackgroundAudio: Boolean
+        get() = p.getBoolean("videoBgAudio", false)
+        set(v) = p.edit { putBoolean("videoBgAudio", v) }
+
+    var videoSort: String
+        get() = p.getString("videoSort", "DATE") ?: "DATE"
+        set(v) = p.edit { putString("videoSort", v) }
+
+    /** Zapamiętane miejsca w filmach: mediaId -> ms. */
+    private val _videoPositions = MutableStateFlow(readPositions())
+    val videoPositions: StateFlow<Map<String, Long>> = _videoPositions.asStateFlow()
+
+    fun saveVideoPosition(mediaId: String, positionMs: Long, durationMs: Long) {
+        val map = _videoPositions.value.toMutableMap()
+        if (positionMs < 5_000 || (durationMs > 0 && durationMs - positionMs < 10_000)) map.remove(mediaId)
+        else map[mediaId] = positionMs
+        // ogranicz do 300 ostatnich
+        val trimmed = if (map.size > 300) map.entries.toList().takeLast(300).associate { it.key to it.value } else map
+        _videoPositions.value = trimmed
+        val o = JSONObject()
+        trimmed.forEach { (k, v) -> o.put(k, v) }
+        p.edit { putString("videoPositions", o.toString()) }
+    }
+
+    private fun readPositions(): Map<String, Long> = runCatching {
+        val o = JSONObject(p.getString("videoPositions", "{}") ?: "{}")
+        val map = LinkedHashMap<String, Long>()
+        o.keys().forEach { k -> map[k] = o.optLong(k) }
+        map as Map<String, Long>
+    }.getOrDefault(emptyMap())
+
     // ---------- Ustawienia obserwowane ----------
 
     private val _ui = MutableStateFlow(readUi())

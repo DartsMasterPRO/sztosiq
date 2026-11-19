@@ -9,7 +9,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.view.KeyEvent
 import android.widget.RemoteViews
 import com.melodia.player.MainActivity
 import com.melodia.player.R
@@ -69,9 +68,9 @@ class MusicWidget : AppWidgetProvider() {
             else views.setImageViewResource(R.id.w_art, R.drawable.ic_w_note)
             views.setImageViewResource(R.id.w_play, if (playing) R.drawable.ic_w_pause else R.drawable.ic_w_play)
 
-            views.setOnClickPendingIntent(R.id.w_prev, mediaButton(ctx, KeyEvent.KEYCODE_MEDIA_PREVIOUS))
-            views.setOnClickPendingIntent(R.id.w_play, mediaButton(ctx, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
-            views.setOnClickPendingIntent(R.id.w_next, mediaButton(ctx, KeyEvent.KEYCODE_MEDIA_NEXT))
+            views.setOnClickPendingIntent(R.id.w_prev, action(ctx, WidgetActionReceiver.ACTION_PREVIOUS, 1))
+            views.setOnClickPendingIntent(R.id.w_play, action(ctx, WidgetActionReceiver.ACTION_PLAY_PAUSE, 2))
+            views.setOnClickPendingIntent(R.id.w_next, action(ctx, WidgetActionReceiver.ACTION_NEXT, 3))
             views.setOnClickPendingIntent(
                 R.id.w_root,
                 PendingIntent.getActivity(
@@ -83,16 +82,12 @@ class MusicWidget : AppWidgetProvider() {
             runCatching { manager.updateAppWidget(ids, views) }
         }
 
-        /** Przyciski działają jak przyciski słuchawek – obsługuje je Media3 (także wznowienie). */
-        private fun mediaButton(ctx: Context, keyCode: Int): PendingIntent {
-            val intent = Intent(Intent.ACTION_MEDIA_BUTTON)
-                .setComponent(ComponentName(ctx.packageName, "androidx.media3.session.MediaButtonReceiver"))
-                .putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-            return PendingIntent.getBroadcast(
-                ctx, keyCode, intent,
+        private fun action(ctx: Context, action: String, requestCode: Int): PendingIntent =
+            PendingIntent.getBroadcast(
+                ctx, requestCode,
+                Intent(ctx, WidgetActionReceiver::class.java).setAction(action),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
-        }
 
         private fun loadArt(ctx: Context, uri: Uri): Bitmap? = runCatching {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

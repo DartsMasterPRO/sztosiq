@@ -55,7 +55,11 @@ fun MelodiaRoot(vm: MusicViewModel) {
     }
     val permissions = remember {
         if (Build.VERSION.SDK_INT >= 33)
-            arrayOf(Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS)
+            arrayOf(
+                Manifest.permission.READ_MEDIA_AUDIO,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.POST_NOTIFICATIONS
+            )
         else arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
@@ -123,6 +127,7 @@ private fun MainScaffold(vm: MusicViewModel) {
     val tabs = remember {
         listOf(
             Tab("library", "Biblioteka", Icons.Default.LibraryMusic),
+            Tab("videos", "Filmy", Icons.Default.Movie),
             Tab("playlists", "Playlisty", Icons.AutoMirrored.Filled.QueueMusic),
             Tab("search", "Szukaj", Icons.Default.Search),
             Tab("eq", "Equalizer", Icons.Default.Equalizer),
@@ -149,7 +154,7 @@ private fun MainScaffold(vm: MusicViewModel) {
                                     }
                                 },
                                 icon = { Icon(tab.icon, null) },
-                                label = { Text(tab.label) }
+                                label = { Text(tab.label, maxLines = 1) }
                             )
                         }
                     }
@@ -158,6 +163,7 @@ private fun MainScaffold(vm: MusicViewModel) {
         ) { padding ->
             NavHost(nav, startDestination = "library", modifier = Modifier.padding(padding)) {
                 composable("library") { LibraryScreen(vm, nav) }
+                composable("videos") { VideosScreen(vm) }
                 composable("playlists") { PlaylistsScreen(vm, nav) }
                 composable("search") { SearchScreen(vm, nav) }
                 composable("eq") { EqualizerScreen(vm, nav) }

@@ -90,7 +90,21 @@ object AudioEffects {
         null
     }
 
-    fun attach(sessionId: Int, settings: Settings) {
+    private var users = 0
+
+    /** Muzyka i wideo dzielą jedną sesję audio – efekty żyją, dopóki używa ich którykolwiek odtwarzacz. */
+    fun acquire(sessionId: Int, settings: Settings) {
+        users++
+        if (eq != null && _sessionId.value == sessionId) return
+        attach(sessionId, settings)
+    }
+
+    fun releaseUser() {
+        users = (users - 1).coerceAtLeast(0)
+        if (users == 0) release()
+    }
+
+    private fun attach(sessionId: Int, settings: Settings) {
         release()
         this.settings = settings
         _sessionId.value = sessionId

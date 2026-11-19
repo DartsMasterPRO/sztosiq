@@ -39,6 +39,8 @@ import com.melodia.player.data.Playlist
 import com.melodia.player.data.Song
 import com.melodia.player.data.SongSort
 import com.melodia.player.data.UiSettings
+import com.melodia.player.data.Video
+import com.melodia.player.data.VideoSort
 import com.melodia.player.data.groupAlbums
 import com.melodia.player.data.groupArtists
 import com.melodia.player.data.groupFolders
@@ -172,6 +174,32 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             _loading.value = false
             onDone?.invoke(list.size, list.size - before)
         }
+    }
+
+    // ================= Filmy =================
+
+    private val _videosRaw = MutableStateFlow<List<Video>>(emptyList())
+    private val _videoSort = MutableStateFlow(
+        runCatching { VideoSort.valueOf(settings.videoSort) }.getOrDefault(VideoSort.DATE)
+    )
+    val videoSort: StateFlow<VideoSort> = _videoSort.asStateFlow()
+    val videos: StateFlow<List<Video>> = combine(_videosRaw, _videoSort) { l, s -> s.sort(l) }
+        .flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    private val _videosLoading = MutableStateFlow(false)
+    val videosLoading: StateFlow<Boolean> = _videosLoading.asStateFlow()
+    val videoPositions: StateFlow<Map<String, Long>> = settings.videoPositions
+
+    fun loadVideos() {
+        viewModelScope.launch {
+            _videosLoading.value = true
+            _videosRaw.value = app.videos.loadVideos()
+            _videosLoading.value = false
+        }
+    }
+
+    fun setVideoSort(sort: VideoSort) {
+        _videoSort.value = sort
+        settings.videoSort = sort.name
     }
 
     // ================= Playlisty / ulubione =================
