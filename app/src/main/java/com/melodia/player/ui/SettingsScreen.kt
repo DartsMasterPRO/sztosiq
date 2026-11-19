@@ -192,7 +192,7 @@ fun SettingsScreen(vm: MusicViewModel, nav: NavController) {
             }
 
             Text(
-                "Melodia 1.1",
+                "SztosiQ 1.2",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 16.dp)

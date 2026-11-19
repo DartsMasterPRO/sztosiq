@@ -93,7 +93,7 @@ private fun PermissionScreen(onRequest: () -> Unit, onOpenSettings: () -> Unit) 
             Icon(Icons.Default.LibraryMusic, null, Modifier.size(80.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(24.dp))
             Text(
-                "Melodia potrzebuje dostępu do Twojej muzyki",
+                "SztosiQ potrzebuje dostępu do Twojej muzyki",
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )

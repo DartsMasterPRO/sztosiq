@@ -1,4 +1,4 @@
-# Melodia – odtwarzacz muzyki na Androida
+# SztosiQ – odtwarzacz muzyki na Androida
 
 Natywna aplikacja: Kotlin + Jetpack Compose (Material 3) + Media3/ExoPlayer.
 Android 8.0+ (minSdk 26), target Android 15.
@@ -54,7 +54,7 @@ Android 8.0+ (minSdk 26), target Android 15.
 
 ### Opcja A – Android Studio (najprościej)
 1. Zainstaluj Android Studio (Ladybug lub nowsze).
-2. File → Open → wskaż folder `Melodia`.
+2. File → Open → wskaż folder `SztosiQ`.
 3. Poczekaj na synchronizację Gradle (pierwszy raz kilka minut).
 4. Podłącz telefon z włączonym debugowaniem USB → zielony ▶ Run.
    Albo: Build → Build APK(s) → plik w `app/build/outputs/apk/debug/`.
@@ -64,7 +64,7 @@ Jeśli Studio zaproponuje aktualizację wersji AGP/Kotlina/bibliotek, możesz si
 ### Opcja B – GitHub Actions (bez instalowania niczego)
 1. Wrzuć folder do nowego repozytorium na GitHubie.
 2. Zakładka **Actions** → workflow „Zbuduj APK” uruchomi się sam (albo „Run workflow”).
-3. Po ~5 minutach pobierz artefakt **Melodia-APK** i zainstaluj APK na telefonie.
+3. Po ~5 minutach pobierz artefakt **SztosiQ-APK** i zainstaluj APK na telefonie.
 
 Wersja release jest podpisana kluczem debug, więc instaluje się od razu. Do Google Play podmień podpis na własny.
 

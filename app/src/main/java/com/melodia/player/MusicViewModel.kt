@@ -155,13 +155,22 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         settings.songSort = sort.name
     }
 
-    fun refreshLibrary() = loadLibrary(showSpinner = true)
+    /** onDone dostaje liczbę znalezionych utworów i ile przybyło / ubyło. */
+    fun refreshLibrary(onDone: ((total: Int, diff: Int) -> Unit)? = null) =
+        loadLibrary(showSpinner = true, onDone = onDone)
 
-    private fun loadLibrary(showSpinner: Boolean) {
+    private fun loadLibrary(showSpinner: Boolean, onDone: ((Int, Int) -> Unit)? = null) {
         viewModelScope.launch {
             if (showSpinner) _loading.value = true
-            _songs.value = app.repository.loadSongs()
+            val before = _songs.value.size
+            val started = System.currentTimeMillis()
+            val list = app.repository.loadSongs()
+            // krótka animacja, żeby było widać, że coś się dzieje
+            val elapsed = System.currentTimeMillis() - started
+            if (showSpinner && elapsed < 600) delay(600 - elapsed)
+            _songs.value = list
             _loading.value = false
+            onDone?.invoke(list.size, list.size - before)
         }
     }
 

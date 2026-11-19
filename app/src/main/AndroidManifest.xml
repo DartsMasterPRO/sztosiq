@@ -69,7 +69,7 @@
         <receiver
             android:name=".widget.MusicWidget"
             android:exported="true"
-            android:label="Melodia">
+            android:label="SztosiQ">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

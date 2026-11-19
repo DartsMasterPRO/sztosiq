@@ -467,7 +467,7 @@ class PlaybackService : MediaLibraryService() {
             params: LibraryParams?
         ): ListenableFuture<LibraryResult<MediaItem>> {
             songsCache = null // odśwież przy każdym wejściu do biblioteki
-            return Futures.immediateFuture(LibraryResult.ofItem(folder(ROOT, "Melodia"), params))
+            return Futures.immediateFuture(LibraryResult.ofItem(folder(ROOT, "SztosiQ"), params))
         }
 
         override fun onGetChildren(

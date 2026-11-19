@@ -12,8 +12,8 @@ android {
         applicationId = "com.melodia.player"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.2"
     }
 
     // Stały klucz podpisu – każda nowa wersja instaluje się na poprzednią (bez utraty danych).

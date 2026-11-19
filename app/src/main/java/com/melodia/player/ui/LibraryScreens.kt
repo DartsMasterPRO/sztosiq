@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,9 +38,26 @@ fun LibraryScreen(vm: MusicViewModel, nav: NavController) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf("Utwory", "Albumy", "Wykonawcy", "Gatunki", "Foldery")
 
+    val ctx = LocalContext.current
+    val loading by vm.loading.collectAsStateWithLifecycle()
+
     Column(Modifier.fillMaxSize()) {
         SimpleTopBar("Biblioteka", actions = {
-            IconButton(onClick = { vm.refreshLibrary() }) { Icon(Icons.Default.Refresh, "Odśwież bibliotekę") }
+            IconButton(enabled = !loading, onClick = {
+                vm.refreshLibrary { total, diff ->
+                    toast(
+                        ctx,
+                        when {
+                            diff > 0 -> "Znaleziono ${songsLabel(total)} (nowe: $diff)"
+                            diff < 0 -> "Znaleziono ${songsLabel(total)} (usunięte: ${-diff})"
+                            else -> "Biblioteka aktualna – ${songsLabel(total)}"
+                        }
+                    )
+                }
+            }) {
+                if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.5.dp)
+                else Icon(Icons.Default.Refresh, "Odśwież bibliotekę")
+            }
             IconButton(onClick = { nav.navigate("stats") }) { Icon(Icons.Default.BarChart, "Statystyki") }
             IconButton(onClick = { nav.navigate("settings") }) { Icon(Icons.Default.Settings, "Ustawienia") }
         })

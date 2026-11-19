@@ -62,7 +62,7 @@ class MusicWidget : AppWidgetProvider() {
 
         private fun push(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
             val views = RemoteViews(ctx.packageName, R.layout.widget_player)
-            views.setTextViewText(R.id.w_title, title ?: "Melodia")
+            views.setTextViewText(R.id.w_title, title ?: "SztosiQ")
             views.setTextViewText(R.id.w_artist, artist ?: "Dotknij, aby otworzyć")
             val bmp = art
             if (bmp != null) views.setImageViewBitmap(R.id.w_art, bmp)
